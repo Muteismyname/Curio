@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CURIO - Datos del Día</title>
+    <style>
+        :root {
+            --accent: #00d2d3; /* Turquesa */
+            --bg: #121212;    
+            --card-bg: #1e1e1e; 
+            --text: #f5f6fa;
+            --border-gray: #4a4a4a;
+            --orange-tag: #ffa502;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 35px 25px;
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .badge-red {
+            background-color: #ff4757;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .brand {
+            font-size: 3.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin: 0;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .date-display {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 25px;
+            display: block;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+        
+        .box {
+            border: 1.5px solid var(--border-gray);
+            background: transparent;
+            padding: 20px;
+            border-radius: 25px;
+            margin-bottom: 15px;
+            text-align: left;
+            animation: slideUp 0.6s ease forwards;
+        }
+        
+        /* Etiquetas con fondo de color solicitado */
+        .label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #000; /* Texto negro para que resalte en el fondo de color */
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .label-history { background-color: var(--accent); }
+        .label-random { background-color: var(--orange-tag); }
+
+        .instruction-box {
+            color: #ffffff;
+            padding: 10px;
+            font-size: 0.85rem;
+            margin: 15px 0;
+            line-height: 1.4;
+            background: none;
+            border: none;
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            padding: 18px;
+            color: #000;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="badge-red">SABÍAS QUE...</div>
+    <div class="brand">CURIO</div>
+    <span id="fecha" class="date-display"></span>
+
+    <div id="contenedor" style="min-height: 50px;">
+        <p style="opacity: 0.4; font-size: 0.9rem;">El contenido aparecerá aquí.</p>
+    </div>
+
+    <div class="instruction-box">
+        Presiona el botón para descubrir algo asombroso sobre hoy y el mundo.
+    </div>
+
+    <button onclick="cargarCuriosidades()">Explorar hoy</button>
+</div>
+
+<script>
+    const fechaHtml = document.getElementById('fecha');
+    const hoy = new Date();
+    fechaHtml.innerText = hoy.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    async function cargarCuriosidades() {
+        const contenedor = document.getElementById('contenedor');
+        contenedor.innerHTML = "<p style='color:var(--accent); font-size: 0.9rem;'>Sincronizando...</p>";
+
+        try {
+            const mes = hoy.getMonth() + 1;
+            const dia = hoy.getDate();
+            
+            const wikiRes = await fetch(`https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/${mes}/${dia}`);
+            const wikiData = await wikiRes.json();
+            const evento = wikiData.events[Math.floor(Math.random() * wikiData.events.length)];
+
+            const factRes = await fetch('https://uselessfacts.jsph.pl/random.json?language=en');
+            const factData = await factRes.json();
+            
+            const transRes = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(factData.text)}&langpair=en|es`);
+            const transData = await transRes.json();
+
+            contenedor.innerHTML = `
+                <div class="box">
+                    <span class="label label-history">Hito Histórico • Año ${evento.year}</span>
+                    <p style="margin:0; font-size: 0.95rem; line-height:1.4;">${evento.text}</p>
+                </div>
+                <div class="box">
+                    <span class="label label-random">Curiosidad Aleatoria</span>
+                    <p style="margin:0; font-size: 0.95rem; line-height:1.4;">${transData.responseData.translatedText}</p>
+                </div>
+            `;
+
+        } catch (error) {
+            contenedor.innerHTML = "<p style='font-size: 0.8rem; opacity: 0.6;'>Reintenta en un momento.</p>";
+        }
+    }
+</script>
+
+</body>
+</html>
